@@ -8,7 +8,7 @@ export async function getGraphClient() {
   const token = session?.accessToken
 
   if (!token) {
-    throw new Error("Not authenticated - Token missing")
+    throw new Error("Not authenticated — Token missing")
   }
 
   return Client.init({
