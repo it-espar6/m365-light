@@ -1,19 +1,30 @@
-import { Button } from "@/components/ui/button"
+import Link from 'next/link'
 
 export default function Page() {
   return (
-    <div className="flex min-h-svh p-6">
-      <div className="flex max-w-md min-w-0 flex-col gap-4 text-sm leading-loose">
-        <div>
-          <h1 className="font-medium">Project ready!</h1>
-          <p>You may now add components and start building.</p>
-          <p>We&apos;ve already added the button component for you.</p>
-          <Button className="mt-2">Button</Button>
-        </div>
-        <div className="font-mono text-xs text-muted-foreground">
-          (Press <kbd>d</kbd> to toggle dark mode)
-        </div>
-      </div>
-    </div>
+    <main style={{
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: '2rem',
+      textAlign: 'center',
+    }}>
+      <h1>M365 light</h1>
+      <p>Start by visiting your dashboard.</p>
+      <Link
+        href="/dashboard"
+        style={{
+          marginTop: '1rem',
+          padding: '0.75rem 1.5rem',
+          backgroundColor: '#0070f3',
+          color: '#fff',
+          borderRadius: '0.5rem',
+          textDecoration: 'none',
+        }}>
+        Go to Dashboard
+      </Link>
+    </main>
   )
 }

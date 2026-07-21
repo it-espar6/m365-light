@@ -10,24 +10,22 @@ export interface CreateUserData {
     mailNickname: string;
     country: string;
     state?: string;
-    department?: string;
-    jobTitle?: string;
     password?: string;
+    otherMails?: string[];
 }
 
 export interface UpdateUserData {
     displayName?: string;
     givenName?: string;
     surname?: string;
-    department?: string;
-    jobTitle?: string;
     country?: string;
     state?: string;
     accountEnabled?: boolean;
+    otherMails?: string[];
 }
 
 /**
- * Récupère tous les utilisateurs avec filtres optionnels
+ * Get all users with optional filters
  */
 export async function getUsers(filter?: string, search?: string) {
     try {
@@ -35,7 +33,7 @@ export async function getUsers(filter?: string, search?: string) {
 
         let query = client
             .api("/users")
-            .select("id,displayName,mail,userPrincipalName,country,state,department,jobTitle,accountEnabled");
+            .select("id,displayName,mail,userPrincipalName,country,state,accountEnabled,otherMails,proxyAddresses");
 
         if (filter) {
             query = query.filter(filter);
@@ -48,13 +46,13 @@ export async function getUsers(filter?: string, search?: string) {
         const response = await query.top(500).get();
         return response.value as User[];
     } catch (error) {
-        console.error("❌ Erreur getUsers:", error);
-        throw new Error("Impossible de récupérer les utilisateurs");
+        console.error("❌ Error getUsers:", error);
+        throw new Error("Unable to fetch users");
     }
 }
 
 /**
- * Récupère un utilisateur par son ID
+ * Get a user by ID
  */
 export async function getUserById(userId: string) {
     try {
@@ -62,18 +60,18 @@ export async function getUserById(userId: string) {
 
         const user = await client
             .api(`/users/${userId}`)
-            .select("id,displayName,mail,userPrincipalName,country,state,department,jobTitle,accountEnabled")
+            .select("id,displayName,mail,userPrincipalName,country,state,accountEnabled,otherMails,proxyAddresses")
             .get();
 
         return user as User;
     } catch (error) {
-        console.error(`❌ Erreur getUserById (${userId}):`, error);
-        throw new Error("Utilisateur non trouvé");
+        console.error(`❌ Error getUserById (${userId}):`, error);
+        throw new Error("User not found");
     }
 }
 
 /**
- * Crée un nouvel utilisateur
+ * Create a new user
  */
 export async function createUser(userData: CreateUserData) {
     try {
@@ -92,8 +90,7 @@ export async function createUser(userData: CreateUserData) {
                 userPrincipalName: `${userData.mailNickname}@${process.env.TENANT_DOMAIN}`,
                 country: userData.country,
                 state: userData.state || "",
-                department: userData.department || "",
-                jobTitle: userData.jobTitle || "",
+                otherMails: userData.otherMails || [],
                 passwordProfile: {
                     forceChangePasswordNextSignIn: true,
                     password: generatedPassword,
@@ -105,13 +102,13 @@ export async function createUser(userData: CreateUserData) {
             temporaryPassword: generatedPassword,
         };
     } catch (error: any) {
-        console.error("❌ Erreur createUser:", error);
-        throw new Error(error.message || "Impossible de créer l'utilisateur");
+        console.error("❌ Error createUser:", error);
+        throw new Error(error.message || "Unable to create user");
     }
 }
 
 /**
- * Met à jour un utilisateur
+ * Update a user
  */
 export async function updateUser(userId: string, updates: UpdateUserData) {
     try {
@@ -119,7 +116,7 @@ export async function updateUser(userId: string, updates: UpdateUserData) {
 
         // Nettoyer les champs undefined
         const cleanUpdates = Object.fromEntries(
-            Object.entries(updates).filter(([_, value]) => value !== undefined)
+            Object.entries(updates).filter((entry): entry is [string, NonNullable<UpdateUserData[keyof UpdateUserData]>] => entry[1] !== undefined)
         );
 
         const updatedUser = await client
@@ -128,13 +125,13 @@ export async function updateUser(userId: string, updates: UpdateUserData) {
 
         return updatedUser;
     } catch (error: any) {
-        console.error(`❌ Erreur updateUser (${userId}):`, error);
-        throw new Error(error.message || "Impossible de mettre à jour l'utilisateur");
+        console.error(`❌ Error updateUser (${userId}):`, error);
+        throw new Error(error.message || "Unable to update user");
     }
 }
 
 /**
- * Supprime un utilisateur
+ * Delete a user
  */
 export async function deleteUser(userId: string) {
     try {
@@ -146,27 +143,27 @@ export async function deleteUser(userId: string) {
 
         return { success: true };
     } catch (error: any) {
-        console.error(`❌ Erreur deleteUser (${userId}):`, error);
-        throw new Error(error.message || "Impossible de supprimer l'utilisateur");
+        console.error(`❌ Error deleteUser (${userId}):`, error);
+        throw new Error(error.message || "Unable to delete user");
     }
 }
 
 /**
- * Récupère les utilisateurs par pays
+ * Get users by country
  */
 export async function getUsersByCountry(country: string) {
     return getUsers(`country eq '${country}'`);
 }
 
 /**
- * Recherche des utilisateurs
+ * Search users
  */
 export async function searchUsers(query: string) {
     return getUsers(undefined, query);
 }
 
 /**
- * Vérifie si un utilisateur existe
+ * Check if a user exists
  */
 export async function userExists(userId: string): Promise<boolean> {
     try {
@@ -179,7 +176,7 @@ export async function userExists(userId: string): Promise<boolean> {
 }
 
 /**
- * Génère un mot de passe temporaire
+ * Generate a temporary password
  */
 function generatePassword(): string {
     const length = 16;

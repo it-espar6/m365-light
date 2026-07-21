@@ -17,7 +17,7 @@ export interface GroupMember {
 }
 
 /**
- * Récupère tous les groupes de sécurité
+ * Get all security groups
  */
 export async function getGroups(search?: string) {
     try {
@@ -35,13 +35,13 @@ export async function getGroups(search?: string) {
         const response = await query.top(100).get();
         return response.value as Group[];
     } catch (error) {
-        console.error("❌ Erreur getGroups:", error);
-        throw new Error("Impossible de récupérer les groupes");
+        console.error("❌ Error getGroups:", error);
+        throw new Error("Unable to fetch groups");
     }
 }
 
 /**
- * Récupère les membres d'un groupe
+ * Get group members
  */
 export async function getGroupMembers(groupId: string) {
     try {
@@ -54,13 +54,13 @@ export async function getGroupMembers(groupId: string) {
 
         return response.value as GroupMember[];
     } catch (error) {
-        console.error(`❌ Erreur getGroupMembers (${groupId}):`, error);
-        throw new Error("Impossible de récupérer les membres du groupe");
+        console.error(`❌ Error getGroupMembers (${groupId}):`, error);
+        throw new Error("Unable to fetch group members");
     }
 }
 
 /**
- * Ajoute un membre à un groupe
+ * Add a member to a group
  */
 export async function addMemberToGroup(groupId: string, userId: string) {
     try {
@@ -74,13 +74,13 @@ export async function addMemberToGroup(groupId: string, userId: string) {
 
         return { success: true };
     } catch (error: any) {
-        console.error(`❌ Erreur addMemberToGroup (${groupId}, ${userId}):`, error);
-        throw new Error(error.message || "Impossible d'ajouter le membre au groupe");
+        console.error(`❌ Error addMemberToGroup (${groupId}, ${userId}):`, error);
+        throw new Error(error.message || "Unable to add member to group");
     }
 }
 
 /**
- * Retire un membre d'un groupe
+ * Remove a member from a group
  */
 export async function removeMemberFromGroup(groupId: string, userId: string) {
     try {
@@ -92,13 +92,13 @@ export async function removeMemberFromGroup(groupId: string, userId: string) {
 
         return { success: true };
     } catch (error: any) {
-        console.error(`❌ Erreur removeMemberFromGroup (${groupId}, ${userId}):`, error);
-        throw new Error(error.message || "Impossible de retirer le membre du groupe");
+        console.error(`❌ Error removeMemberFromGroup (${groupId}, ${userId}):`, error);
+        throw new Error(error.message || "Unable to remove member from group");
     }
 }
 
 /**
- * Vérifie si un utilisateur est membre d'un groupe
+ * Check if a user is a group member
  */
 export async function isUserInGroup(groupId: string, userId: string): Promise<boolean> {
     try {
@@ -115,7 +115,7 @@ export async function isUserInGroup(groupId: string, userId: string): Promise<bo
 }
 
 /**
- * Récupère les groupes d'un utilisateur
+ * Get a user's groups
  */
 export async function getUserGroups(userId: string) {
     try {
@@ -124,12 +124,13 @@ export async function getUserGroups(userId: string) {
         const response = await client
             .api(`/users/${userId}/memberOf`)
             .select("id,displayName,description")
-            .filter("securityEnabled eq true")
             .get();
 
-        return response.value as Group[];
+        return (response.value as any[]).filter(
+            (g) => g["@odata.type"] === "#microsoft.graph.group"
+        ) as Group[];
     } catch (error) {
-        console.error(`❌ Erreur getUserGroups (${userId}):`, error);
-        throw new Error("Impossible de récupérer les groupes de l'utilisateur");
+        console.error(`❌ Error getUserGroups (${userId}):`, error);
+        throw new Error("Unable to fetch user groups");
     }
 }

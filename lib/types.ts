@@ -10,8 +10,11 @@ export interface User {
     mailNickname: string;
     country: string;
     state: string;
+    accountEnabled?: boolean;
+    otherMails?: string[];
+    proxyAddresses?: string[];
     groups: string[];
-    password?: string; // Optionnel, utilisé uniquement lors de la création d'un utilisateur
+    password?: string;
 }
 
 export interface UserSession extends DefaultSession {
