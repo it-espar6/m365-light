@@ -1,5 +1,6 @@
 import { withAuth, success, error } from "@/lib/api-utils"
-import { getGroupMembers, addMemberToGroup, removeMemberFromGroup } from "@/lib/graph/groups"
+import { getGroupById, getGroupMembers, addMemberToGroup, removeMemberFromGroup } from "@/lib/graph/groups"
+import { audit } from "@/lib/audit"
 
 export const GET = withAuth(async (_session, _req, params) => {
   try {
@@ -10,18 +11,20 @@ export const GET = withAuth(async (_session, _req, params) => {
   }
 })
 
-export const POST = withAuth(async (_session, req, params) => {
+export const POST = withAuth(async (session, req, params) => {
   const body = await req.json()
 
   try {
     const result = await addMemberToGroup(params.id, body.userId)
+    const group = await getGroupById(params.id)
+    audit("group.member.add", session.user?.email ?? "unknown", `Added user ${body.userId} to group "${group.displayName}"`, params.id)
     return success(result, 201)
   } catch (e: unknown) {
     return error(e instanceof Error ? e.message : "Unable to add member to the group")
   }
 })
 
-export const DELETE = withAuth(async (_session, req, params) => {
+export const DELETE = withAuth(async (session, req, params) => {
   const { searchParams } = new URL(req.url)
   const userId = searchParams.get("userId")
 
@@ -31,6 +34,8 @@ export const DELETE = withAuth(async (_session, req, params) => {
 
   try {
     const result = await removeMemberFromGroup(params.id, userId)
+    const group = await getGroupById(params.id)
+    audit("group.member.remove", session.user?.email ?? "unknown", `Removed user ${userId} from group "${group.displayName}"`, params.id)
     return success(result)
   } catch (e: unknown) {
     return error(e instanceof Error ? e.message : "Unable to remove member from the group")

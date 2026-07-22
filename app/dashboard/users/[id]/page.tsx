@@ -191,7 +191,7 @@ export default function UserDetailPage() {
 
   function openAssignDialog(sku: AvailableSku) {
     setAssignDialog(sku)
-                            const alreadyDisabled = filteredLicenses?.userLicenses
+    const alreadyDisabled = filteredLicenses?.userLicenses
       ?.find((l) => l.skuId === sku.skuId)
       ?.servicePlans
       ?.filter((p) => p.provisioningStatus === "Disabled")
@@ -215,9 +215,6 @@ export default function UserDetailPage() {
       </div>
     )
   }
-
-
-  console.log(licenseData)
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">

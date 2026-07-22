@@ -1,5 +1,3 @@
-
-import LoginForm from '@/components/login-form'
 import { getServerSession } from "next-auth/next"
 import { redirect } from 'next/navigation'
 
@@ -8,7 +6,5 @@ export default async function Page() {
   if (session && session?.expires > new Date().toISOString())
     redirect("/dashboard")
 
-  return (
-    <LoginForm />
-  )
+  redirect("/auth/login")
 }

@@ -1,5 +1,6 @@
 import { withAuth, success, error } from "@/lib/api-utils"
-import { getUserGroups, addMemberToGroup, removeMemberFromGroup } from "@/lib/graph/groups"
+import { getGroupById, getUserGroups, addMemberToGroup, removeMemberFromGroup } from "@/lib/graph/groups"
+import { audit } from "@/lib/audit"
 
 export const GET = withAuth(async (_session, _req, params) => {
   try {
@@ -10,7 +11,7 @@ export const GET = withAuth(async (_session, _req, params) => {
   }
 })
 
-export const POST = withAuth(async (_session, req, params) => {
+export const POST = withAuth(async (session, req, params) => {
   const { groupId } = await req.json()
 
   if (!groupId) {
@@ -18,14 +19,16 @@ export const POST = withAuth(async (_session, req, params) => {
   }
 
   try {
+    const group = await getGroupById(groupId)
     const result = await addMemberToGroup(groupId, params.id)
+    audit("group.member.add", session.user?.email ?? "unknown", `Added user ${params.id} to group "${group.displayName}"`, groupId)
     return success(result, 201)
   } catch (e: unknown) {
     return error(e instanceof Error ? e.message : "Unable to assign group")
   }
 })
 
-export const DELETE = withAuth(async (_session, req, params) => {
+export const DELETE = withAuth(async (session, req, params) => {
   const { searchParams } = new URL(req.url)
   const groupId = searchParams.get("groupId")
 
@@ -34,7 +37,9 @@ export const DELETE = withAuth(async (_session, req, params) => {
   }
 
   try {
+    const group = await getGroupById(groupId)
     const result = await removeMemberFromGroup(groupId, params.id)
+    audit("group.member.remove", session.user?.email ?? "unknown", `Removed user ${params.id} from group "${group.displayName}"`, groupId)
     return success(result)
   } catch (e: unknown) {
     return error(e instanceof Error ? e.message : "Unable to unassign group")

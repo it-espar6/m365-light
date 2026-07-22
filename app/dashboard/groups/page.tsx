@@ -1,10 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { Search } from "lucide-react"
-import { useApi } from "@/hooks/use-api"
+import { Plus, Search } from "lucide-react"
+import { useApi, useMutation } from "@/hooks/use-api"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
@@ -14,6 +15,17 @@ import {
   TableHead,
   TableCell,
 } from "@/components/ui/table"
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { useToast } from "@/components/ui/toast"
+import { Label } from "@/components/ui/label"
 
 interface Group {
   id: string
@@ -23,20 +35,72 @@ interface Group {
 }
 
 export default function GroupsPage() {
+  const { toast } = useToast()
   const [search, setSearch] = useState("")
+  const [createOpen, setCreateOpen] = useState(false)
+  const [newName, setNewName] = useState("")
+  const [newDesc, setNewDesc] = useState("")
+
   const baseUrl = "/api/groups?search=GGA-"
   const { data: groups, loading, error } = useApi<Group[]>(
     search ? `${baseUrl}&q=${encodeURIComponent(search)}` : baseUrl
   )
   const sortedGroups = groups?.slice().sort((a, b) => a.displayName.localeCompare(b.displayName))
 
+  const { mutate: createGroup, loading: creating } = useMutation("/api/groups")
+
+  async function handleCreate() {
+    if (!newName.trim()) return
+    const result = await createGroup("POST", { displayName: newName.trim(), description: newDesc.trim() || undefined })
+    if (result) {
+      toast({ title: "Group created" })
+      setCreateOpen(false)
+      setNewName("")
+      setNewDesc("")
+    }
+  }
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Groups</h1>
-        <p className="text-sm text-muted-foreground">
-          Manage the security groups in your tenant
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">Groups</h1>
+          <p className="text-sm text-muted-foreground">
+            Manage the security groups in your tenant
+          </p>
+        </div>
+        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+          <DialogTrigger>
+            <Button>
+              <Plus className="size-4" />
+              New Group
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create security group</DialogTitle>
+              <DialogDescription>
+                Groups are created as security-enabled. Member management happens on the group detail page.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Group name</Label>
+                <Input id="name" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="GGA-MyGroup" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="desc">Description (optional)</Label>
+                <Input id="desc" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder="Description of the group" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+              <Button onClick={handleCreate} disabled={creating || !newName.trim()}>
+                {creating ? "Creating…" : "Create"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="relative max-w-sm">

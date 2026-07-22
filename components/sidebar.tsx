@@ -12,6 +12,7 @@ import {
 import { cn } from "@/lib/utils"
 import {
   ChevronLeft,
+  History,
   KeyRound,
   LayoutDashboard,
   LogOut,
@@ -33,6 +34,7 @@ const navItems = [
   { href: "/dashboard/users", label: "Users", icon: Users },
   { href: "/dashboard/groups", label: "Groups", icon: Shield },
   { href: "/dashboard/password", label: "Password & MFA", icon: KeyRound },
+  { href: "/dashboard/audit", label: "Audit Log", icon: History },
   // { href: "/dashboard/exchange", label: "Exchange", icon: Mail },
 ]
 

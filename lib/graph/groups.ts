@@ -41,6 +41,85 @@ export async function getGroups(search?: string) {
 }
 
 /**
+ * Get group by ID
+ */
+export async function getGroupById(groupId: string) {
+    try {
+        const client = await getGraphClient();
+
+        const group = await client
+            .api(`/groups/${groupId}`)
+            .select("id,displayName,description,visibility")
+            .get();
+
+        return group as Group;
+    } catch (error) {
+        console.error(`❌ Error getGroupById (${groupId}):`, error);
+        throw new Error("Group not found");
+    }
+}
+
+/**
+ * Create a new security group
+ */
+export async function createGroup(displayName: string, description?: string) {
+    try {
+        const client = await getGraphClient();
+
+        const group = await client
+            .api("/groups")
+            .post({
+                displayName,
+                description: description ?? "",
+                mailEnabled: false,
+                securityEnabled: true,
+                mailNickname: displayName.replace(/\s+/g, "-").toLowerCase(),
+            });
+
+        return group as Group;
+    } catch (error: any) {
+        console.error("❌ Error createGroup:", error);
+        throw new Error(error.message || "Unable to create group");
+    }
+}
+
+/**
+ * Update a group
+ */
+export async function updateGroup(groupId: string, updates: { displayName?: string; description?: string }) {
+    try {
+        const client = await getGraphClient();
+
+        const updated = await client
+            .api(`/groups/${groupId}`)
+            .patch(updates);
+
+        return updated as Group;
+    } catch (error: any) {
+        console.error(`❌ Error updateGroup (${groupId}):`, error);
+        throw new Error(error.message || "Unable to update group");
+    }
+}
+
+/**
+ * Delete a group
+ */
+export async function deleteGroup(groupId: string) {
+    try {
+        const client = await getGraphClient();
+
+        await client
+            .api(`/groups/${groupId}`)
+            .delete();
+
+        return { success: true };
+    } catch (error: any) {
+        console.error(`❌ Error deleteGroup (${groupId}):`, error);
+        throw new Error(error.message || "Unable to delete group");
+    }
+}
+
+/**
  * Get group members
  */
 export async function getGroupMembers(groupId: string) {

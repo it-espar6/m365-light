@@ -48,7 +48,7 @@ export async function getUsers(filter?: string, search?: string, includeLicenses
         const response = await query.top(500).get();
         const users = response.value as User[];
 
-        if (includeLicenses) {
+        if (includeLicenses && users.length > 0) {
             const results = await Promise.allSettled(
                 users.map(async (u) => {
                     const details = await client.api(`/users/${u.id}/licenseDetails`).get()

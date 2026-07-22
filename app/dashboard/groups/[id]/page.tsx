@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, UserPlus, Trash2, Search } from "lucide-react"
+import { ArrowLeft, Trash2, UserPlus, Search } from "lucide-react"
 import { useApi, useMutation } from "@/hooks/use-api"
 import { useToast } from "@/components/ui/toast"
 import { Button } from "@/components/ui/button"
@@ -55,6 +55,7 @@ export default function GroupDetailPage() {
   const { data: group } = useApi<Group>(`/api/groups?id=${id}`)
   const { data: members, loading: membersLoading, refetch: refetchMembers } = useApi<GroupMember[]>(`/api/groups/${id}/members`)
   const { mutate: addMember, loading: adding } = useMutation(`/api/groups/${id}/members`)
+  const { mutate: deleteGroup, loading: deleting } = useMutation(`/api/groups/${id}`)
   const [addOpen, setAddOpen] = useState(false)
   const [userSearch, setUserSearch] = useState("")
   const { data: searchResults } = useApi<User[]>(
@@ -62,6 +63,7 @@ export default function GroupDetailPage() {
   )
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null)
   const [removing, setRemoving] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
 
   async function handleAdd(userId: string) {
     const result = await addMember("POST", { userId })
@@ -87,6 +89,14 @@ export default function GroupDetailPage() {
     setRemoving(false)
   }
 
+  async function handleDelete() {
+    const result = await deleteGroup("DELETE")
+    if (result) {
+      toast({ title: "Group deleted" })
+      router.push("/dashboard/groups")
+    }
+  }
+
   const filteredResults = searchResults?.filter(
     (u) => !members?.some((m) => m.id === u.id)
   )
@@ -99,9 +109,33 @@ export default function GroupDetailPage() {
       </Button>
 
       <Card>
-        <CardHeader>
-          <CardTitle>{group?.displayName ?? id}</CardTitle>
-          <CardDescription>{group?.description || "—"}</CardDescription>
+        <CardHeader className="flex flex-row items-start justify-between">
+          <div>
+            <CardTitle>{group?.displayName ?? id}</CardTitle>
+            <CardDescription>{group?.description || "—"}</CardDescription>
+          </div>
+          <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+            <DialogTrigger>
+              <Button variant="destructive" size="sm">
+                <Trash2 className="size-4" />
+                Delete
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Delete group</DialogTitle>
+                <DialogDescription>
+                  {`Are you sure you want to delete "${group?.displayName}"? This action is irreversible.`}
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDeleteOpen(false)}>Cancel</Button>
+                <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+                  {deleting ? "Deleting…" : "Delete"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </CardHeader>
       </Card>
 

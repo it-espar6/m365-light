@@ -2,9 +2,10 @@ import { getServerSession } from "next-auth"
 import { NextRequest, NextResponse } from "next/server"
 
 import { authOptions } from "@/lib/auth"
+import type { UserSession } from "@/lib/types"
 
 type NextAuthHandler<TParams extends Record<string, string>> = (
-  session: NonNullable<Awaited<ReturnType<typeof getServerSession>>>,
+  session: UserSession,
   req: NextRequest,
   params: TParams
 ) => Promise<NextResponse>
@@ -16,7 +17,7 @@ export function withAuth<TParams extends Record<string, string> = Record<string,
     req: NextRequest,
     context: { params: Promise<TParams> }
   ): Promise<NextResponse> => {
-    const session = await getServerSession(authOptions)
+    const session = (await getServerSession(authOptions)) as UserSession | null
     if (!session) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
     }
