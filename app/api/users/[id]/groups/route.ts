@@ -5,8 +5,8 @@ export const GET = withAuth(async (_session, _req, params) => {
   try {
     const groups = await getUserGroups(params.id)
     return success(groups)
-  } catch {
-    return error("Unable to fetch user groups")
+  } catch (e: unknown) {
+    return error(e instanceof Error ? e.message : "Unable to fetch user groups")
   }
 })
 
@@ -20,8 +20,8 @@ export const POST = withAuth(async (_session, req, params) => {
   try {
     const result = await addMemberToGroup(groupId, params.id)
     return success(result, 201)
-  } catch {
-    return error("Unable to assign group")
+  } catch (e: unknown) {
+    return error(e instanceof Error ? e.message : "Unable to assign group")
   }
 })
 
@@ -36,7 +36,7 @@ export const DELETE = withAuth(async (_session, req, params) => {
   try {
     const result = await removeMemberFromGroup(groupId, params.id)
     return success(result)
-  } catch {
-    return error("Unable to unassign group")
+  } catch (e: unknown) {
+    return error(e instanceof Error ? e.message : "Unable to unassign group")
   }
 })

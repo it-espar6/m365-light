@@ -2,7 +2,7 @@
 
 import useSWR from "swr"
 import { useEffect } from "react"
-import { useAppStore, type Group, type SharedMailbox, type DistributionList } from "@/lib/store"
+import { useAppStore, type Group, type SharedMailbox, type DistributionList, type LicenseInfo } from "@/lib/store"
 import type { User } from "@/lib/types"
 
 const fetcher = <T>(url: string): Promise<T> =>
@@ -60,17 +60,32 @@ export function useDistLists() {
   return { data: data ?? [], error, isLoading, mutate }
 }
 
+export function useLicenses() {
+  const { data, error, isLoading, mutate } = useSWR("/api/licenses", fetcher<LicenseInfo[]>)
+  const setLicenses = useAppStore((s) => s.setLicenses)
+  const setLoading = useAppStore((s) => s.setLoading)
+
+  useEffect(() => {
+    setLoading("licenses", isLoading)
+    if (data) setLicenses(data)
+  }, [data, isLoading, setLicenses, setLoading])
+
+  return { data: data ?? [], error, isLoading, mutate }
+}
+
 export function useAllDashboardData() {
   const users = useUsers()
   const groups = useGroups()
   const mailboxes = useMailboxes()
   const distLists = useDistLists()
+  const licenses = useLicenses()
 
   const loading =
     users.isLoading ||
     groups.isLoading ||
     mailboxes.isLoading ||
-    distLists.isLoading
+    distLists.isLoading ||
+    licenses.isLoading
 
-  return { users, groups, mailboxes, distLists, loading }
+  return { users, groups, mailboxes, distLists, licenses, loading }
 }

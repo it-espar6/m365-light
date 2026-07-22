@@ -1,35 +1,35 @@
 "use client"
 
-import { useState } from "react"
-import { useParams, useRouter } from "next/navigation"
-import Link from "next/link"
-import { ArrowLeft, Trash2, KeyRound, ShieldOff, Shield, Plus, X, Search, Tag } from "lucide-react"
-import useSWR from "swr"
-import { useApi, useMutation } from "@/hooks/use-api"
-import { useGroups } from "@/hooks/use-dashboard-data"
-import { useToast } from "@/components/ui/toast"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Skeleton } from "@/components/ui/skeleton"
+import { Button } from "@/components/ui/button"
 import {
   Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter,
 } from "@/components/ui/card"
 import {
   Dialog,
-  DialogTrigger,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useToast } from "@/components/ui/toast"
+import { useApi, useMutation } from "@/hooks/use-api"
+import { useGroups } from "@/hooks/use-dashboard-data"
 import type { User } from "@/lib/types"
+import { ArrowLeft, KeyRound, Plus, Search, Shield, ShieldOff, Tag, Trash2, X } from "lucide-react"
+import Link from "next/link"
+import { useParams, useRouter } from "next/navigation"
+import { useState } from "react"
+import useSWR from "swr"
 
 interface Group {
   id: string
@@ -56,12 +56,41 @@ export default function UserDetailPage() {
   const [assigning, setAssigning] = useState<string | null>(null)
   const [groupSearch, setGroupSearch] = useState("")
 
-  interface LicenseData {
-    userLicenses: { id: string; skuId: string; skuPartNumber: string }[]
-    availableSkus: { id: string; skuId: string; skuPartNumber: string; consumedUnits: number; prepaidUnits: { enabled: number } }[]
+  interface ServicePlan {
+    servicePlanId: string
+    servicePlanName: string
+    provisioningStatus?: string
   }
+
+  interface AssignedLicense {
+    id: string
+    skuId: string
+    skuPartNumber: string
+    servicePlans: ServicePlan[]
+  }
+
+  interface AvailableSku {
+    id: string
+    skuId: string
+    skuPartNumber: string
+    consumedUnits: number
+    prepaidUnits: { enabled: number }
+    servicePlans: ServicePlan[]
+  }
+
+  interface LicenseData {
+    userLicenses: AssignedLicense[]
+    availableSkus: AvailableSku[]
+  }
+  const targetSkus = ["O365_BUSINESS_PREMIUM", "O365_BUSINESS_ESSENTIALS"]
   const { data: licenseData, isLoading: licLoading, mutate: mutateLicenses } = useSWR<LicenseData>(`/api/users/${id}/licenses`, fetcher)
+  const filteredLicenses = licenseData ? {
+    userLicenses: licenseData.userLicenses.filter((l) => targetSkus.includes(l.skuPartNumber)),
+    availableSkus: licenseData.availableSkus.filter((s) => targetSkus.includes(s.skuPartNumber)),
+  } : null
   const [licensing, setLicensing] = useState<string | null>(null)
+  const [assignDialog, setAssignDialog] = useState<AvailableSku | null>(null)
+  const [disabledPlans, setDisabledPlans] = useState<string[]>([])
 
   const sortByName = (a: Group, b: Group) => a.displayName.localeCompare(b.displayName)
   const sortedUserGroups = userGroups?.slice().sort(sortByName)
@@ -114,17 +143,19 @@ export default function UserDetailPage() {
     }
   }
 
-  async function handleAssignLicense(skuId: string) {
+  async function handleAssignLicense(skuId: string, plansToDisable: string[]) {
     setLicensing(skuId)
     try {
       const res = await fetch(`/api/users/${id}/licenses`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ addLicenses: [{ skuId, disabledPlans: [] }], removeLicenses: [] }),
+        body: JSON.stringify({ addLicenses: [{ skuId, disabledPlans: plansToDisable }], removeLicenses: [] }),
       })
       const json = await res.json()
       if (res.ok) {
         toast({ title: "License assigned" })
+        setAssignDialog(null)
+        setDisabledPlans([])
         mutateLicenses()
       } else {
         toast({ title: json.error ?? "Failed to assign license" })
@@ -158,6 +189,16 @@ export default function UserDetailPage() {
     }
   }
 
+  function openAssignDialog(sku: AvailableSku) {
+    setAssignDialog(sku)
+                            const alreadyDisabled = filteredLicenses?.userLicenses
+      ?.find((l) => l.skuId === sku.skuId)
+      ?.servicePlans
+      ?.filter((p) => p.provisioningStatus === "Disabled")
+      ?.map((p) => p.servicePlanId) ?? []
+    setDisabledPlans(alreadyDisabled)
+  }
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -174,6 +215,9 @@ export default function UserDetailPage() {
       </div>
     )
   }
+
+
+  console.log(licenseData)
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -368,63 +412,172 @@ export default function UserDetailPage() {
             Licenses
           </CardTitle>
           <CardDescription>
-            {licLoading ? "Loading…" : `${licenseData?.userLicenses.length ?? 0} of ${licenseData?.availableSkus.length ?? 0} assigned`}
+            {licLoading ? "Loading…" : `${filteredLicenses?.userLicenses.length ?? 0} assigned`}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
           {licLoading ? (
             <div className="space-y-2">
               <Skeleton className="h-6 w-full" />
               <Skeleton className="h-6 w-full" />
             </div>
-          ) : licenseData && licenseData.availableSkus.length > 0 ? (
-            <div className="space-y-2">
-              {licenseData.availableSkus.map((sku) => {
-                const hasLicense = licenseData.userLicenses.some((l) => l.skuId === sku.skuId)
-                const isBusy = licensing === sku.skuId
+          ) : (
+            <>
+              {filteredLicenses && filteredLicenses.userLicenses.length > 0 && (
+                <div className="space-y-3">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Assigned licenses
+                  </p>
+                  {filteredLicenses.userLicenses.map((lic) => {
+                    const sku = filteredLicenses?.availableSkus.find((s) => s.skuId === lic.skuId)
+                    return (
+                      <div key={lic.id} className="rounded-md border p-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium">{sku?.skuPartNumber ?? lic.skuPartNumber}</p>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive"
+                              onClick={() => handleRemoveLicense(lic.skuId)}
+                              disabled={licensing === lic.skuId}
+                            >
+                              {licensing === lic.skuId ? "…" : <X className="size-3.5" />}
+                              Remove
+                            </Button>
+                          </div>
+                        </div>
+                        {lic.servicePlans.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {lic.servicePlans.slice(0, 10).map((plan) => (
+                              <Badge
+                                key={plan.servicePlanId}
+                                variant={plan.provisioningStatus === "Disabled" ? "outline" : "secondary"}
+                                className="text-[10px]"
+                              >
+                                {plan.servicePlanName}
+                              </Badge>
+                            ))}
+                            {lic.servicePlans.length > 10 && (
+                              <Badge variant="outline" className="text-[10px]">
+                                +{lic.servicePlans.length - 10} more
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {filteredLicenses && filteredLicenses.availableSkus.length > 0 && (
+                <div className="space-y-3">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Available licenses
+                  </p>
+                  {filteredLicenses.availableSkus.map((sku) => {
+                    const hasLicense = filteredLicenses.userLicenses.some((l) => l.skuId === sku.skuId)
+                    const remaining = sku.prepaidUnits.enabled - sku.consumedUnits
+                    const isBusy = licensing === sku.skuId
+                    return (
+                      <div
+                        key={sku.skuId}
+                        className={`flex items-center justify-between rounded-md border px-3 py-2 ${hasLicense ? "bg-muted/30" : ""}`}
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{sku.skuPartNumber}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {remaining > 0 ? `${remaining} available` : "Fully used"}
+                          </p>
+                        </div>
+                        {hasLicense ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive shrink-0"
+                            onClick={() => handleRemoveLicense(sku.skuId)}
+                            disabled={isBusy}
+                          >
+                            {isBusy ? "…" : <X className="size-3.5" />}
+                            Remove
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="shrink-0"
+                            onClick={() => openAssignDialog(sku)}
+                            disabled={isBusy || remaining <= 0}
+                          >
+                            <Plus className="size-3.5" />
+                            Assign
+                          </Button>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {(!filteredLicenses || (filteredLicenses.userLicenses.length === 0 && filteredLicenses.availableSkus.length === 0)) && (
+                <p className="text-sm text-muted-foreground">No license information available</p>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={!!assignDialog} onOpenChange={(o) => { if (!o) { setAssignDialog(null); setDisabledPlans([]) } }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Assign license</DialogTitle>
+            <DialogDescription>
+              {assignDialog?.skuPartNumber} — choose service plans to disable.
+            </DialogDescription>
+          </DialogHeader>
+          {assignDialog && (
+            <div className="max-h-80 space-y-1 overflow-y-auto">
+              {assignDialog.servicePlans.map((plan) => {
+                const isDisabled = disabledPlans.includes(plan.servicePlanId)
                 return (
                   <div
-                    key={sku.skuId}
-                    className="flex items-center justify-between rounded-md border px-3 py-2"
+                    key={plan.servicePlanId}
+                    className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted cursor-pointer"
+                    onClick={() => {
+                      setDisabledPlans((prev) =>
+                        isDisabled
+                          ? prev.filter((id) => id !== plan.servicePlanId)
+                          : [...prev, plan.servicePlanId]
+                      )
+                    }}
                   >
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{sku.skuPartNumber}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {sku.consumedUnits} / {sku.prepaidUnits.enabled} used
-                      </p>
+                    <div
+                      className={`size-4 shrink-0 rounded border ${isDisabled ? "bg-destructive border-destructive" : "border-input"} flex items-center justify-center`}
+                    >
+                      {isDisabled && <X className="size-3 text-destructive-foreground" />}
                     </div>
-                    {hasLicense ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive shrink-0"
-                        onClick={() => handleRemoveLicense(sku.skuId)}
-                        disabled={isBusy}
-                      >
-                        <X className="size-4" />
-                        Remove
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="shrink-0"
-                        onClick={() => handleAssignLicense(sku.skuId)}
-                        disabled={isBusy}
-                      >
-                        <Plus className="size-4" />
-                        Assign
-                      </Button>
-                    )}
+                    <span className={`text-sm ${isDisabled ? "text-muted-foreground line-through" : ""}`}>
+                      {plan.servicePlanName}
+                    </span>
                   </div>
                 )
               })}
             </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">No licenses available</p>
           )}
-        </CardContent>
-      </Card>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setAssignDialog(null); setDisabledPlans([]) }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => assignDialog && handleAssignLicense(assignDialog.skuId, disabledPlans)}
+              disabled={licensing === assignDialog?.skuId}
+            >
+              {licensing === assignDialog?.skuId ? "Assigning…" : "Assign"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {pwResult && (
         <Card>

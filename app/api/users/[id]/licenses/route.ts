@@ -8,8 +8,8 @@ export const GET = withAuth(async (_session, _req, params) => {
       getSubscribedSkus(),
     ])
     return success({ userLicenses, availableSkus })
-  } catch {
-    return error("Unable to fetch license information")
+  } catch (e: unknown) {
+    return error(e instanceof Error ? e.message : "Unable to fetch license information")
   }
 })
 
@@ -21,7 +21,7 @@ export const POST = withAuth(async (_session, req, params) => {
   try {
     const result = await assignUserLicenses(params.id, addLicenses, removeLicenses)
     return success(result)
-  } catch {
-    return error("Unable to update licenses")
+  } catch (e: unknown) {
+    return error(e instanceof Error ? e.message : "Unable to update licenses")
   }
 })

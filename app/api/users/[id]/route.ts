@@ -5,8 +5,8 @@ export const GET = withAuth(async (_session, _req, params) => {
   try {
     const user = await getUserById(params.id)
     return success(user)
-  } catch {
-    return error("User not found")
+  } catch (e: unknown) {
+    return error(e instanceof Error ? e.message : "User not found")
   }
 })
 
@@ -16,8 +16,8 @@ export const PUT = withAuth(async (_session, req, params) => {
   try {
     const updated = await updateUser(params.id, body)
     return success(updated)
-  } catch {
-    return error("Unable to update user")
+  } catch (e: unknown) {
+    return error(e instanceof Error ? e.message : "Unable to update user")
   }
 })
 
@@ -25,7 +25,7 @@ export const DELETE = withAuth(async (_session, _req, params) => {
   try {
     const result = await deleteUser(params.id)
     return success(result)
-  } catch {
-    return error("Unable to delete user")
+  } catch (e: unknown) {
+    return error(e instanceof Error ? e.message : "Unable to delete user")
   }
 })

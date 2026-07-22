@@ -1,19 +1,29 @@
 "use client"
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuPopup,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 import {
   ChevronLeft,
   KeyRound,
   LayoutDashboard,
   LogOut,
-  Mail,
   Menu,
+  Moon,
   Shield,
+  Sun,
   Users,
   X,
 } from "lucide-react"
-import { signOut } from "next-auth/react"
+import { signOut, useSession } from "next-auth/react"
+import { useTheme } from "next-themes"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
@@ -23,12 +33,23 @@ const navItems = [
   { href: "/dashboard/users", label: "Users", icon: Users },
   { href: "/dashboard/groups", label: "Groups", icon: Shield },
   { href: "/dashboard/password", label: "Password & MFA", icon: KeyRound },
-  { href: "/dashboard/exchange", label: "Exchange", icon: Mail },
+  // { href: "/dashboard/exchange", label: "Exchange", icon: Mail },
 ]
 
 export function Sidebar() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
+  const { data: session } = useSession()
+  const { theme, setTheme } = useTheme()
+
+  const initials = session?.user?.name
+    ? session.user.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+    : session?.user?.email?.charAt(0).toUpperCase() ?? "?"
 
   return (
     <>
@@ -84,13 +105,28 @@ export function Sidebar() {
         </nav>
 
         <div className="border-t p-3">
-          <button
-            onClick={() => signOut({ callbackUrl: "/" })}
-            className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-          >
-            <LogOut className="size-4 shrink-0" />
-            Sign out
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[popup-open]:bg-sidebar-accent data-[popup-open]:text-sidebar-accent-foreground">
+              <Avatar className="size-7">
+                <AvatarImage src={session?.user?.image ?? undefined} alt={session?.user?.name ?? ""} />
+                <AvatarFallback delay={100}>{initials}</AvatarFallback>
+              </Avatar>
+              <span className="flex-1 truncate text-left">
+                {session?.user?.name ?? session?.user?.email ?? "User"}
+              </span>
+            </DropdownMenuTrigger>
+            <DropdownMenuPopup>
+              <DropdownMenuItem onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+                {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
+                {theme === "dark" ? "Light mode" : "Dark mode"}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/" })}>
+                <LogOut className="size-4" />
+                Sign out
+              </DropdownMenuItem>
+            </DropdownMenuPopup>
+          </DropdownMenu>
         </div>
       </aside>
     </>

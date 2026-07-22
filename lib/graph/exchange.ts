@@ -5,6 +5,12 @@ export interface SharedMailbox {
   displayName: string
   mail: string
   mailNickname: string
+  description?: string
+  createdDateTime?: string
+  proxyAddresses?: string[]
+  resourceProvisioningOptions?: string[]
+  groupTypes?: string[]
+  memberCount?: number
 }
 
 export interface DistributionList {
@@ -12,22 +18,53 @@ export interface DistributionList {
   displayName: string
   mail: string
   mailNickname: string
+  description?: string
+  createdDateTime?: string
+  proxyAddresses?: string[]
+  resourceProvisioningOptions?: string[]
+  groupTypes?: string[]
   memberCount?: number
 }
 
 export async function getSharedMailboxes() {
+  return getMailEnabledGroups()
+}
+
+export async function getDistributionLists() {
+  return getMailEnabledGroups()
+}
+
+async function getMailEnabledGroups() {
   const client = await getGraphClient()
 
   const response = await client
     .api("/groups")
-    .select("id,displayName,mail,mailNickname")
-    .filter(
-      "mailEnabled eq true and securityEnabled eq false and groupTypes/any(c:c eq '')"
-    )
-    .top(100)
+    .select("id,displayName,mail,mailNickname,description,createdDateTime,proxyAddresses,resourceProvisioningOptions,groupTypes")
+    .filter("mailEnabled eq true and securityEnabled eq false")
+    //.top(100)
     .get()
 
-  return response.value as SharedMailbox[]
+  /*const allGroups = (response.value as SharedMailbox[]).filter(
+  (g) => !g.groupTypes || g.groupTypes.length === 0
+)*/
+
+  const allGroups = (response.value as SharedMailbox[])
+
+  const withCounts = await Promise.all(
+    allGroups.map(async (item) => {
+      try {
+        const members = await client
+          .api(`/groups/${item.id}/members`)
+          .select("id")
+          .get()
+        return { ...item, memberCount: members.value?.length ?? 0 }
+      } catch {
+        return { ...item, memberCount: 0 }
+      }
+    })
+  )
+
+  return withCounts
 }
 
 export async function createSharedMailbox(data: {
@@ -51,37 +88,6 @@ export async function deleteSharedMailbox(groupId: string) {
   const client = await getGraphClient()
   await client.api(`/groups/${groupId}`).delete()
   return { success: true }
-}
-
-export async function getDistributionLists() {
-  const client = await getGraphClient()
-
-  const response = await client
-    .api("/groups")
-    .select("id,displayName,mail,mailNickname")
-    .filter(
-      "mailEnabled eq true and securityEnabled eq false and groupTypes/any(c:c eq '')"
-    )
-    .top(100)
-    .get()
-
-  const lists = response.value as DistributionList[]
-
-  const listsWithCount = await Promise.all(
-    lists.map(async (list) => {
-      try {
-        const members = await client
-          .api(`/groups/${list.id}/members`)
-          .select("id")
-          .get()
-        return { ...list, memberCount: members.value?.length ?? 0 }
-      } catch {
-        return { ...list, memberCount: 0 }
-      }
-    })
-  )
-
-  return listsWithCount
 }
 
 export async function createDistributionList(data: {
@@ -115,14 +121,19 @@ export async function getDistributionListMembers(groupId: string) {
   const response = await client
     .api(`/groups/${groupId}/members`)
     .select("id,displayName,mail,userPrincipalName")
+    .top(50)
     .get()
 
-  return response.value as {
+  const members = response.value as {
     id: string
     displayName: string
     mail?: string
     userPrincipalName: string
   }[]
+
+  const nextLink = response["@odata.nextLink"]
+
+  return { members, hasMore: !!nextLink }
 }
 
 export async function addDistributionListMember(groupId: string, userId: string) {

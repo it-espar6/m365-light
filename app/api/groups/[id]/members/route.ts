@@ -5,8 +5,8 @@ export const GET = withAuth(async (_session, _req, params) => {
   try {
     const members = await getGroupMembers(params.id)
     return success(members)
-  } catch {
-    return error("Unable to fetch group members")
+  } catch (e: unknown) {
+    return error(e instanceof Error ? e.message : "Unable to fetch group members")
   }
 })
 
@@ -16,8 +16,8 @@ export const POST = withAuth(async (_session, req, params) => {
   try {
     const result = await addMemberToGroup(params.id, body.userId)
     return success(result, 201)
-  } catch {
-    return error("Unable to add member to the group")
+  } catch (e: unknown) {
+    return error(e instanceof Error ? e.message : "Unable to add member to the group")
   }
 })
 
@@ -32,7 +32,7 @@ export const DELETE = withAuth(async (_session, req, params) => {
   try {
     const result = await removeMemberFromGroup(params.id, userId)
     return success(result)
-  } catch {
-    return error("Unable to remove member from the group")
+  } catch (e: unknown) {
+    return error(e instanceof Error ? e.message : "Unable to remove member from the group")
   }
 })

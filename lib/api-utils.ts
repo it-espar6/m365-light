@@ -32,3 +32,10 @@ export function success<T>(data: T, status = 200) {
 export function error(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status })
 }
+
+export function notAvailable() {
+  return NextResponse.json(
+    { error: "Exchange features are not available via the Graph API. Use the Exchange admin center instead." },
+    { status: 403 }
+  )
+}

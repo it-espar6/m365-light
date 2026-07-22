@@ -15,6 +15,7 @@ export interface User {
     proxyAddresses?: string[];
     groups: string[];
     password?: string;
+    licenses?: string[];
 }
 
 export interface UserSession extends DefaultSession {

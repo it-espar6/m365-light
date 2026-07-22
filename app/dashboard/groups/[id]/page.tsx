@@ -95,7 +95,7 @@ export default function GroupDetailPage() {
     <div className="mx-auto max-w-3xl space-y-6">
       <Button variant="ghost" size="sm" onClick={() => router.back()}>
         <ArrowLeft className="size-4" />
-        Retour
+        Back
       </Button>
 
       <Card>
@@ -222,7 +222,7 @@ export default function GroupDetailPage() {
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmRemove(null)}>
-              Annuler
+              Cancel
             </Button>
             <Button
               variant="destructive"

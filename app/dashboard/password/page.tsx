@@ -46,7 +46,7 @@ export default function PasswordPage() {
     })
     if (result) {
       setTempPw((result as { temporaryPassword: string }).temporaryPassword)
-      toast({ title: "Mot de passe réinitialisé" })
+      toast({ title: "Password reset" })
     }
   }
 
@@ -57,7 +57,7 @@ export default function PasswordPage() {
       action: "revoke-mfa",
     })
     if (result) {
-      toast({ title: "Sessions MFA révoquées" })
+      toast({ title: "MFA sessions revoked" })
       setRevokeOpen(false)
     }
   }
@@ -111,7 +111,7 @@ export default function PasswordPage() {
 
           {showResults && search && users && users.length === 0 && (
             <p className="py-2 text-center text-sm text-muted-foreground">
-              Aucun utilisateur trouvé
+              No users found
             </p>
           )}
 
@@ -128,7 +128,7 @@ export default function PasswordPage() {
                 className="mt-2"
                 onClick={() => { setSelectedUser(null); setSearch(""); setTempPw(null) }}
               >
-                Changer
+                Change
               </Button>
             </div>
           )}
@@ -168,14 +168,14 @@ Are you sure you want to revoke all MFA sessions
                       variant="outline"
                       onClick={() => setRevokeOpen(false)}
                     >
-                      Annuler
+                      Cancel
                     </Button>
                     <Button
                       variant="destructive"
                       onClick={handleRevokeMfa}
                       disabled={loading}
                     >
-                      Confirmer
+                      Confirm
                     </Button>
                   </DialogFooter>
                 </DialogContent>
@@ -186,14 +186,14 @@ Are you sure you want to revoke all MFA sessions
           {tempPw && (
             <Card>
               <CardHeader>
-                <CardTitle>Mot de passe temporaire</CardTitle>
+                <CardTitle>Temporary password</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="rounded-md border bg-muted px-3 py-2 font-mono text-sm">
                   {tempPw}
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Copiez ce mot de passe. Il ne sera plus affiché.
+                  Copy this password. It will not be shown again.
                 </p>
               </CardContent>
               <CardFooter>
@@ -201,7 +201,7 @@ Are you sure you want to revoke all MFA sessions
                   variant="ghost"
                   onClick={() => setTempPw(null)}
                 >
-                  Fermer
+                  Close
                 </Button>
               </CardFooter>
             </Card>

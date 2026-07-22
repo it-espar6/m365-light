@@ -22,7 +22,7 @@ import { useState } from "react"
 export default function UsersPage() {
   const [search, setSearch] = useState("")
   const { data: users, loading, error } = useApi<User[]>(
-    `/api/users${search ? `?search=${encodeURIComponent(search)}` : ""}`
+    `/api/users${search ? `?search=${encodeURIComponent(search)}&licenses=true` : "?licenses=true"}`
   )
   const totalUsers = useAppStore((s) => s.users.length)
 
@@ -67,7 +67,7 @@ export default function UsersPage() {
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Country</TableHead>
-              <TableHead>State</TableHead>
+              <TableHead>License</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="w-16" />
             </TableRow>
@@ -93,7 +93,15 @@ export default function UsersPage() {
                     {user.mail ?? user.userPrincipalName}
                   </TableCell>
                   <TableCell>{user.country || "—"}</TableCell>
-                  <TableCell>{user.state || "—"}</TableCell>
+                  <TableCell>
+                    {user.licenses && user.licenses.length > 0
+                      ? user.licenses.map((sku) => (
+                          <Badge key={sku} variant="secondary" className="mr-1 text-xs">
+                            {sku === "O365_BUSINESS_PREMIUM" ? "Premium" : "Essentials"}
+                          </Badge>
+                        ))
+                      : <span className="text-muted-foreground">—</span>}
+                  </TableCell>
                   <TableCell>
                     <Badge variant={user.accountEnabled !== false ? "default" : "secondary"}>
                       {user.accountEnabled !== false ? "Active" : "Disabled"}

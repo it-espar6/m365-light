@@ -27,7 +27,9 @@ export interface UpdateUserData {
 /**
  * Get all users with optional filters
  */
-export async function getUsers(filter?: string, search?: string) {
+const TARGET_SKUS = ["O365_BUSINESS_PREMIUM", "O365_BUSINESS_ESSENTIALS"]
+
+export async function getUsers(filter?: string, search?: string, includeLicenses?: boolean) {
     try {
         const client = await getGraphClient();
 
@@ -44,7 +46,27 @@ export async function getUsers(filter?: string, search?: string) {
         }
 
         const response = await query.top(500).get();
-        return response.value as User[];
+        const users = response.value as User[];
+
+        if (includeLicenses) {
+            const results = await Promise.allSettled(
+                users.map(async (u) => {
+                    const details = await client.api(`/users/${u.id}/licenseDetails`).get()
+                    const skus: string[] = (details.value as { skuPartNumber: string }[])
+                        .filter((l) => TARGET_SKUS.includes(l.skuPartNumber))
+                        .map((l) => l.skuPartNumber)
+                    return { id: u.id, skus }
+                })
+            )
+            results.forEach((r) => {
+                if (r.status === "fulfilled") {
+                    const user = users.find((u) => u.id === r.value.id)
+                    if (user) user.licenses = r.value.skus
+                }
+            })
+        }
+
+        return users;
     } catch (error) {
         console.error("❌ Error getUsers:", error);
         throw new Error("Unable to fetch users");

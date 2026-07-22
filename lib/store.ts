@@ -36,16 +36,40 @@ interface AppStore {
   setLoading: (key: string, value: boolean) => void
 }
 
+export interface LicenseInfo {
+  skuPartNumber: string
+  consumed: number
+  total: number
+  available: number
+}
+
+interface AppStore {
+  users: User[]
+  groups: Group[]
+  mailboxes: SharedMailbox[]
+  distLists: DistributionList[]
+  licenses: LicenseInfo[]
+  loading: Record<string, boolean>
+  setUsers: (users: User[]) => void
+  setGroups: (groups: Group[]) => void
+  setMailboxes: (mailboxes: SharedMailbox[]) => void
+  setDistLists: (items: DistributionList[]) => void
+  setLicenses: (licenses: LicenseInfo[]) => void
+  setLoading: (key: string, value: boolean) => void
+}
+
 export const useAppStore = create<AppStore>((set) => ({
   users: [],
   groups: [],
   mailboxes: [],
   distLists: [],
+  licenses: [],
   loading: {},
   setUsers: (users) => set({ users }),
   setGroups: (groups) => set({ groups }),
   setMailboxes: (mailboxes) => set({ mailboxes }),
   setDistLists: (items) => set({ distLists: items }),
+  setLicenses: (licenses) => set({ licenses }),
   setLoading: (key, value) =>
     set((s) => ({ loading: { ...s.loading, [key]: value } })),
 }))
